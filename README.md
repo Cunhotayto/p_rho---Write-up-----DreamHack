@@ -36,13 +36,15 @@ int __cdecl __noreturn main(int argc, const char **argv, const char **envp)
 
 Các bạn sẽ thấy 1 lỗi cực kì nặng ở đâu, đó là `i = buf[i]`. Nghĩa là khi các bạn nhập i thì ở vòng lặp tiếp theo nó sẽ lấy i đó làm vị trí tiếp theo. Vậy chúng ta có thể khai thác gì từ đây ?
 
-Thì như mình nói là vì buf nằm ở vùng .bss nên chúng ta có thể tương tác với các vùng nằm trước hay đằng sau nó. Bất ngờ là vùng .got tức là địa chỉ chứa các hàm thực thi nằm đằng sau vùng .bss này. Giờ hãy xem nhìn đi. Mỗi lần lặp là nó sẽ printf ra, lệnh này sẽ dò địa chỉ tại thằng printf@got ( nằm ở vùng .got ) và gọi printf@plt để thực thi nó. Vậy thì chúng ta có thể thay đổi địa chỉ tại thằng printf@got bằng địa chỉ hàm `win` và thực thi nó không ?
+Thì như mình nói là vì buf nằm ở vùng .bss nên chúng ta có thể tương tác với các vùng nằm trước hay đằng sau nó. Bất ngờ là vùng .got tức là địa chỉ chứa các hàm thực thi nằm đằng sau vùng .bss này. Giờ hãy nhìn đi. Mỗi lần lặp là nó sẽ printf ra, lệnh này sẽ gọi thằng printf@plt và thằng này sẽ thực thi địa chỉ tại printf@got ( nằm ở vùng .got ). Vậy thì chúng ta có thể thay đổi địa chỉ tại thằng printf@got bằng địa chỉ hàm `win` và thực thi nó không ?
 
 Làm sao để trỏ vào đó ? Thì như mình nói thì `i = buf[i]` và cái này có 1 đặc điểm là nó có thể trỏ vào bất kì đâu nếu bạn có thể ghi ra đúng địa chỉ tại chỗ đó. Vì khi có địa chỉ ở chỗ đó + địa chỉ của buf thì chúng ta sẽ tính được khoảng cách giữa chúng và thay nó bằng i. Làm sao nó có thể hoạt động ?
 
 Thì cái `buf[i]`, nó chạy giống như vậy nè. Ví dụ buf[0] thì nó sẽ được trỏ vào địa chỉ rbp, buf[1] thì trỏ vào rbp+0x8... cứ như vậy tăng lên, và ngược lại với số âm thì nó sẽ bị tụt xuống. Nhưng index mà âm thì sao mảng chạy được ? Không sao lúc này chúng ta sẽ có kĩ thuật là **bù 2** ( các bạn có thể search gg để tìm hiểu thêm ). Vậy nên chúng ta có thể lợi dụng nó để trỏ vào printf@got. 
 
-Ta có công thức sau : `(index * 8) = buf_add - printf_add`. Tại sao lại nhân 8 ? Bởi vì mảng thường là 1 ô 8 byte nên index phải nhân 8 để ra đúng offset. Và buf_add kiếm đâu ra ? Thì các bạn hãy gõ lệnh sau `nm ./prob | grep buf` là ra được nha.
+Ta có công thức sau : `(index * 8) = buf_add - printf_add`. Tại sao lại nhân 8 ? Bởi vì mảng thường là 1 vị trí là 8 byte nên index phải nhân 8 để ra đúng offset. Và buf_add kiếm đâu ra ? Thì các bạn hãy gõ lệnh sau `nm ./prob | grep buf` là ra được nha.
+
+<img width="475" height="48" alt="image" src="https://github.com/user-attachments/assets/77d4199b-e0d8-4150-b1a1-41fd505fe19f" />
 
 Vậy sau khi có được index rồi chúng ta sẽ trỏ được vào printf@got và thay nó bằng địa chỉ win là xong, khá đơn giản đúng không. Hãy cho mình 1 star để có động lực viết tiếp write up nha 🐧.
 
